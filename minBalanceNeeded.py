@@ -22,9 +22,14 @@ except json.JSONDecodeError as e:
     print(f"Error details: {e}")
     exit(1)
 
-# Extract the "bot" -> "long" section from the JSON
-long_config = config.get("bot", {}).get("long", {})
-short_config = config.get("bot", {}).get("short", {})
+# Extract the "long" and "short" sections - handle both formats
+# Check if config has "bot" wrapper or direct "long"/"short" keys
+if "bot" in config:
+    long_config = config.get("bot", {}).get("long", {})
+    short_config = config.get("bot", {}).get("short", {})
+else:
+    long_config = config.get("long", {})
+    short_config = config.get("short", {})
 
 # Extract values from the "long" section
 entry_initial_qty_pct_long = long_config.get("entry_initial_qty_pct", 0.0)
@@ -42,19 +47,27 @@ coinMinOrder = float(input())
 print()
 
 # Calculate min balance needed for long
-try:
-    minBalanceNeeded_long = coinMinOrder / entry_initial_qty_pct_long / twe_long * n_pos_long
-    print("min balance needed for long: $", minBalanceNeeded_long)
-except ZeroDivisionError:
-    print("Error: Division by zero occurred in the long section. Please check the input values.")
+if n_pos_long > 0 and entry_initial_qty_pct_long > 0 and twe_long > 0:
+    try:
+        minBalanceNeeded_long = coinMinOrder / entry_initial_qty_pct_long / twe_long * n_pos_long
+        print("min balance needed for long: $", minBalanceNeeded_long)
+    except ZeroDivisionError:
+        print("Error: Division by zero occurred in the long section. Please check the input values.")
+        minBalanceNeeded_long = None
+else:
+    print("Long positions are disabled (n_positions = 0) or invalid parameters.")
     minBalanceNeeded_long = None
 
 # Calculate min balance needed for short
-try:
-    minBalanceNeeded_short = coinMinOrder / entry_initial_qty_pct_short / twe_short * n_pos_short
-    print("min balance needed for short: $", minBalanceNeeded_short)
-except ZeroDivisionError:
-    print("Error: Division by zero occurred in the short section. Please check the input values.")
+if n_pos_short > 0 and entry_initial_qty_pct_short > 0 and twe_short > 0:
+    try:
+        minBalanceNeeded_short = coinMinOrder / entry_initial_qty_pct_short / twe_short * n_pos_short
+        print("min balance needed for short: $", minBalanceNeeded_short)
+    except ZeroDivisionError:
+        print("Error: Division by zero occurred in the short section. Please check the input values.")
+        minBalanceNeeded_short = None
+else:
+    print("Short positions are disabled (n_positions = 0) or invalid parameters.")
     minBalanceNeeded_short = None
 
 # Ask user for balance they want to use
@@ -63,7 +76,7 @@ balance = float(input())
 print()
 
 # Calculate first order sizes for long
-if minBalanceNeeded_long is not None:
+if minBalanceNeeded_long is not None and n_pos_long > 0:
     try:
         firstOrderSizeWithMinBalance_long = minBalanceNeeded_long * (twe_long / n_pos_long) * entry_initial_qty_pct_long
         print("first order size with minimum balance for long: $", firstOrderSizeWithMinBalance_long)
@@ -74,7 +87,7 @@ if minBalanceNeeded_long is not None:
         print("Error: Division by zero occurred while calculating order sizes for long. Please check the input values.")
 
 # Calculate first order sizes for short
-if minBalanceNeeded_short is not None:
+if minBalanceNeeded_short is not None and n_pos_short > 0:
     try:
         firstOrderSizeWithMinBalance_short = minBalanceNeeded_short * (twe_short / n_pos_short) * entry_initial_qty_pct_short
         print("first order size with minimum balance for short: $", firstOrderSizeWithMinBalance_short)
